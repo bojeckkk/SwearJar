@@ -8,6 +8,7 @@ http://amzn.to/1LGWsLG
 """
 
 from __future__ import print_function
+from random import randint
 
 def lambda_handler(event, context):
     """ Route the incoming request based on type (LaunchRequest, IntentRequest,
@@ -67,7 +68,7 @@ def on_intent(intent_request, session):
     # Dispatch to your skill's intent handlers
     #if intent_name == "AMAZON.HelpIntent":
      #   return get_welcome_response()
-    if intent_name == "AMAZON.CancelIntent" or intent_name == "AMAZON.StopIntent":
+    if intent_name == "AMAZON.CancelIntent" or intent_name == "AMAZON.StopIntent" or intent_name == "Stop":
         return handle_session_end_request()
     elif intent_name == "AddPerson":
         return add_person_to_jar(intent, session)
@@ -87,8 +88,30 @@ def on_intent(intent_request, session):
         return add_person_and_money(intent, session)
     elif intent_name == "HelpMe":
         return help_me(intent, session)
+    elif intent_name == "WhoInJar":
+        return who_in_jar(intent, session)
+    elif intent_name == "PersonAccount":
+        return tell_person_account(intent, session)
     else:
         raise ValueError("Invalid intent")
+
+def tell_person_account(intent, session):
+    session_attributes = session.get('attributes', {})
+    person = intent['slots']['Person']['value']
+    found = False
+    for p in session_attributes['Persons']:
+        if p == person:
+            found = True
+    if found:
+        speech_output = person + " has " + str(session_attributes['Persons'][person]) + " dollars on account"
+    else:
+        speech_output = "There's no such person in the jar"
+    reprompt_text = ""
+    should_end_session = False
+    card_title = intent['name']
+
+    return build_response(session_attributes, build_speechlet_response(
+        card_title, speech_output, reprompt_text, should_end_session))  
 
 def help_me(intent, session):
     session_attributes = session.get('attributes', {})
@@ -124,11 +147,18 @@ def add_money_to_person(intent, session):
             isPresent = True
     if isPresent:
         session_attributes['Persons'][person] = session_attributes['Persons'][person] + session_attributes['Price'] 
-        speech_output = person + " has " + str(session_attributes['Persons'][person]) + " dollars on account"        
+        speech_output = person + " has " + str(session_attributes['Persons'][person]) + " dollars on account. "
+        randInt = randint(0, 4)
+        if persons[person] >= 10 & randInt == 4:
+            speech_output = speech_output + "He's such a naughty guy."
+        elif randInt == 1:
+            speech_output = speech_output + "What did he say?"
+        
     else:
         speech_output = "There is no such person in the jar. Shall I add " + person + " to the jar?"
         session_attributes['Waiting'] = True
         session_attributes['NewPerson'] = person
+
 
     reprompt_text = ""
     should_end_session = False
@@ -195,7 +225,25 @@ def update_price(intent,session):
     session_attributes['Price'] = int(newPrice)
 
     card_title = intent['name']
-    speech_output = "New price is " + newPrice
+    speech_output = "New price is " + newPrice + " dollars."
+    reprompt_text = ""
+
+    should_end_session = False
+
+    return build_response(session_attributes, build_speechlet_response(
+        card_title, speech_output, reprompt_text, should_end_session))
+
+def who_in_jar(intent, session):
+    session_attributes = session.get('attributes', {})
+    persons = session_attributes['Persons']
+    personsList = persons.keys()
+    card_title = intent['name']
+    speech_output = "The persons in the jar are: "
+    if not personsList:
+        speech_output = "There are no persons in the jar"
+    else:
+        for person in personsList:
+            speech_output = speech_output + person + ", "
     reprompt_text = ""
 
     should_end_session = False
@@ -227,7 +275,8 @@ def tell_the_ranking(intent, session):
     if not personsList:
         speech_output = "There are no persons in the jar"
     else:
-        for person in personsList:
+        #sortedPersons = sorted(persons.items(), key=lambda key: persons[key])
+        for person in persons:
             speech_output = speech_output + person + "with " + str(persons[person]) + "dollars,"
     reprompt_text = ""
 
@@ -287,9 +336,7 @@ def get_welcome_response():
     # If the user either does not reply to the welcome message or says something
     # that is not understood, they will be prompted again with this text.
     reprompt_text = "Swear Jar is ready " \
-                    "There are avalaible functions names: add person, remove person, " \
-                    "ranking list, reset the jar and set price " \
-                    "If you want use example say the function name " 
+                    "If you've got any problems, just call help" 
     should_end_session = False
     return build_response(session_attributes, build_speechlet_response(
         card_title, speech_output, reprompt_text, should_end_session))
