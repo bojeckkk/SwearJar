@@ -77,12 +77,25 @@ def on_intent(intent_request, session):
         return add_person_to_jar(intent, session)
     elif intent_name == "WhatsRanking":
         return tell_the_ranking(intent, session)
-    elif intent_name == "SetPrice":
-        return tell_the_ranking(intent, session)
     elif intent_name == "HowMuchInJar":        
         return tell_how_much_in(intent, session)
     else:
         raise ValueError("Invalid intent")
+
+def tell_how_much_in(intent, session):
+    session_attributes = session.get('attributes', {})
+    persons = session_attributes['Persons']
+    personsValues = persons.values()
+    jarSum = 0
+    for value in personsValues:
+        jarSum = jarSum + value
+    speech_output = "There is " + str(jarSum) + " in the jar"
+    reprompt_text = ""
+    should_end_session = False
+    card_title = intent['name']
+
+    return build_response(session_attributes, build_speechlet_response(
+        card_title, speech_output, reprompt_text, should_end_session))
 
 def tell_the_ranking(intent, session):
     session_attributes = session.get('attributes', {})
