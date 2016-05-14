@@ -65,9 +65,9 @@ def on_intent(intent_request, session):
     intent_name = intent_request['intent']['name']
 
     # Dispatch to your skill's intent handlers
-    if intent_name == "AMAZON.HelpIntent":
-        return get_welcome_response()
-    elif intent_name == "AMAZON.CancelIntent" or intent_name == "AMAZON.StopIntent":
+    #if intent_name == "AMAZON.HelpIntent":
+     #   return get_welcome_response()
+    if intent_name == "AMAZON.CancelIntent" or intent_name == "AMAZON.StopIntent":
         return handle_session_end_request()
     elif intent_name == "AddPerson":
         return add_person_to_jar(intent, session)
@@ -81,8 +81,53 @@ def on_intent(intent_request, session):
         return remove_person(intent, session)
     elif intent_name == "ResetJar":
         return reset_jar(intent, session)
+    elif intent_name == "HasSworn":
+        return add_money_to_person(intent, session)
+    elif intent_name == "AskedForAdd":
+        return add_person_and_money(intent, session)
     else:
         raise ValueError("Invalid intent")
+
+def add_money_to_person(intent, session):
+    session_attributes = session.get('attributes', {})
+    person = intent['slots']['Person']['value']
+    persons = session_attributes['Persons']
+    personsList = persons.keys()
+    isPresent = False
+    for p in personsList:
+        if p == person:
+            isPresent = True
+    if isPresent:
+        session_attributes['Persons'][person] = session_attributes['Persons'][person] + session_attributes['Price'] 
+        speech_output = person + " has " + str(session_attributes['Persons'][person]) + " dollars on account"        
+    else:
+        speech_output = "There is no such person in the jar. Shall I add " + person + " to the jar?"
+        session_attributes['Waiting'] = True
+        session_attributes['NewPerson'] = person
+
+    reprompt_text = ""
+    should_end_session = False
+    card_title = intent['name']
+    return build_response(session_attributes, build_speechlet_response(
+        card_title, speech_output, reprompt_text, should_end_session))  
+
+def add_person_and_money(intent, session):
+    session_attributes = session.get('attributes', {})
+    if session_attributes['Waiting']:
+        if intent['slots']['response']['value'] == "yes":
+            person = session_attributes['NewPerson']
+            session_attributes['Persons'][person] = session_attributes['Price']
+            speech_output = person + " has " + str(session_attributes['Persons'][person]) + " dollars on account" 
+        else:
+            speech_output = "No person was added"
+    else:
+        speech_output = ""
+    reprompt_text = ""
+    card_title = intent['name']
+    should_end_session = False
+    session_attributes['Waiting'] = False
+    return build_response(session_attributes, build_speechlet_response(
+        card_title, speech_output, reprompt_text, should_end_session)) 
 
 def remove_person(intent, session):
     session_attributes = session.get('attributes', {})
@@ -170,11 +215,18 @@ def add_person_to_jar(intent, session):
     session_attributes = session.get('attributes', {})
     persons = session_attributes['Persons']
     newPersonName = intent['slots']['Person']['value']
-    session_attributes['Persons'][newPersonName] = 0
 
-
+    personsList = session_attributes['Persons']
+    exists = False
+    for p in personsList:
+        if p == newPersonName:
+            exists = True
+    if exists:
+        speech_output = "That person already exists!"
+    else:
+        session_attributes['Persons'][newPersonName] = 0
+        speech_output = "Added " + newPersonName + " to the jar"
     card_title = intent['name']
-    speech_output = "Added " + newPersonName + " to the jar"
     reprompt_text = ""
 
     should_end_session = False
@@ -204,9 +256,9 @@ def get_welcome_response():
 
     personsAmount = len(session_attributes['Persons'])
     card_title = "Welcome"
-    speech_output = "Welcome to the Swear Jar skill " \
-                    "The current price is" + str(session_attributes['Price']) \
-                    + "There are " + str(personsAmount) + " persons in the jar"
+    speech_output = "Welcome to the Swear Jar skill. " \
+                    "The current price is set to" + str(session_attributes['Price']) + " dollars. " \
+                    + "There are " + str(personsAmount) + " persons in the jar."
     # If the user either does not reply to the welcome message or says something
     # that is not understood, they will be prompted again with this text.
     reprompt_text = "Swear Jar is ready"
