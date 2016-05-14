@@ -85,8 +85,33 @@ def on_intent(intent_request, session):
         return add_money_to_person(intent, session)
     elif intent_name == "AskedForAdd":
         return add_person_and_money(intent, session)
+    elif intent_name == "HelpMe":
+        return help_me(intent, session)
     else:
         raise ValueError("Invalid intent")
+
+def help_me(intent, session):
+    session_attributes = session.get('attributes', {})
+    help_slot = intent['slots']['Help']['value']
+    if help_slot == "adding persons":
+        speech_output = "to add new person you have to say add and the name of the person you want to add"
+    elif help_slot == "removing person":
+        speech_output = "to remove new person you have to say remove and the name of the person you want to remove"
+    elif help_slot == "reseting jar":
+        speech_output = "to reset the jar you have to say reset jar"
+    elif help_slot == "setting price":
+        speech_output = "to set new price you have to say remove and the amount of money"
+    elif help_slot == "how much":
+        speech_output = "if you want to know how much money jar got you have to say how much"
+    elif help_slot == "help":
+        speech_output ="You can ask for adding persons, removing persons, resetting the jar, setting the price and how much is in the jar"
+
+    reprompt_text = ""
+    should_end_session = False
+    card_title = intent['name']
+
+    return build_response(session_attributes, build_speechlet_response(
+        card_title, speech_output, reprompt_text, should_end_session)) 
 
 def add_money_to_person(intent, session):
     session_attributes = session.get('attributes', {})
@@ -252,7 +277,7 @@ def get_welcome_response():
     add those here
     """
 
-    session_attributes = { 'Persons' : {}, 'Price' : 1 } #initialize the local session
+    session_attributes = { 'Persons' : {}, 'Price' : 1} #initialize the local session
 
     personsAmount = len(session_attributes['Persons'])
     card_title = "Welcome"
@@ -261,7 +286,10 @@ def get_welcome_response():
                     + "There are " + str(personsAmount) + " persons in the jar."
     # If the user either does not reply to the welcome message or says something
     # that is not understood, they will be prompted again with this text.
-    reprompt_text = "Swear Jar is ready"
+    reprompt_text = "Swear Jar is ready " \
+                    "There are avalaible functions names: add person, remove person, " \
+                    "ranking list, reset the jar and set price " \
+                    "If you want use example say the function name " 
     should_end_session = False
     return build_response(session_attributes, build_speechlet_response(
         card_title, speech_output, reprompt_text, should_end_session))
