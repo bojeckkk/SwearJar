@@ -65,11 +65,7 @@ def on_intent(intent_request, session):
     intent_name = intent_request['intent']['name']
 
     # Dispatch to your skill's intent handlers
-    if intent_name == "MyColorIsIntent":
-        return set_color_in_session(intent, session)
-    elif intent_name == "WhatsMyColorIntent":
-        return get_color_from_session(intent, session)
-    elif intent_name == "AMAZON.HelpIntent":
+    if intent_name == "AMAZON.HelpIntent":
         return get_welcome_response()
     elif intent_name == "AMAZON.CancelIntent" or intent_name == "AMAZON.StopIntent":
         return handle_session_end_request()
@@ -80,9 +76,62 @@ def on_intent(intent_request, session):
     elif intent_name == "HowMuchInJar":        
         return tell_how_much_in(intent, session)
     elif intent_name == "SetPrice":
-        return tell_the_ranking(intent, session)
+        return update_price(intent, session)
+    elif intent_name == "RemovePerson":
+        return remove_person(intent, session)
+    elif intent_name == "ResetJar":
+        return reset_jar(intent, session)
+    elif intent_name == "HelpMe":
+        return help_me(intent, session)
     else:
         raise ValueError("Invalid intent")
+
+def help_me(intent, session):
+    session_attributes = session.get('attributes', {})
+    help_slot = intent['slots']['Help']['value']
+    if help_slot == "adding person":
+        speech_output = "to add new person you have to say add and the name of the person you want to add"
+    elif help_slot == "removing person":
+        speech_output = "to remove new person you have to say remove and the name of the person you want to remove"
+    elif help_slot == "reseting jar":
+        speech_output = "to reset the jar you have to say reset jar"
+    elif help_slot == "setting price":
+        speech_output = "to set new price you have to say remove and the amount of money"
+    elif help_slot == "how much":
+        speech_output = "if you want to know how much money jar got you have to say how much"
+def remove_person(intent, session):
+    session_attributes = session.get('attributes', {})
+    person = intent['slots']['Person']['value']
+    found = False
+    for p in session_attributes['Persons']:
+        if p == person:
+            found = True
+    if found:
+        session_attributes['Persons'].pop(person, None)
+        speech_output = "Successfuly removed " + person + " from the jar"
+    else:
+        speech_output = "There's no such person in the jar"
+    reprompt_text = ""
+    should_end_session = False
+    card_title = intent['name']
+
+    return build_response(session_attributes, build_speechlet_response(
+        card_title, speech_output, reprompt_text, should_end_session))        
+
+def reset_jar(intent, session):
+    session_attributes = session.get('attributes', {})
+    persons = session_attributes['Persons']
+    persons.clear()
+
+
+    card_title = intent['name']
+    speech_output = "Jar has been reseted"
+    reprompt_text = ""
+
+    should_end_session = False
+
+    return build_response(session_attributes, build_speechlet_response(
+        card_title, speech_output, reprompt_text, should_end_session))
 
 def update_price(intent,session):
     session_attributes = session.get('attributes', {})
@@ -120,8 +169,11 @@ def tell_the_ranking(intent, session):
     personsList = persons.keys()
     card_title = intent['name']
     speech_output = "The ranking is: "
-    for person in personsList:
-        speech_output = speech_output + person + "with " + str(persons[person]) + "dollars,"
+    if not personsList:
+        speech_output = "There are no persons in the jar"
+    else:
+        for person in personsList:
+            speech_output = speech_output + person + "with " + str(persons[person]) + "dollars,"
     reprompt_text = ""
 
     should_end_session = False
@@ -163,7 +215,7 @@ def get_welcome_response():
     add those here
     """
 
-    session_attributes = { 'Persons' : {}, 'Price' : 1 } #initialize the local session
+    session_attributes = { 'Persons' : {}, 'Price' : 1} #initialize the local session
 
     personsAmount = len(session_attributes['Persons'])
     card_title = "Welcome"
@@ -172,7 +224,10 @@ def get_welcome_response():
                     + "There are " + str(personsAmount) + " persons in the jar"
     # If the user either does not reply to the welcome message or says something
     # that is not understood, they will be prompted again with this text.
-    reprompt_text = "Swear Jar is ready"
+    reprompt_text = "Swear Jar is ready " \
+                    "There are avalaible functions names: add person, remove person, " \
+                    "ranking list, reset the jar and set price " \
+                    "If you want use example say the function name " 
     should_end_session = False
     return build_response(session_attributes, build_speechlet_response(
         card_title, speech_output, reprompt_text, should_end_session))
@@ -186,62 +241,6 @@ def handle_session_end_request():
     should_end_session = True
     return build_response({}, build_speechlet_response(
         card_title, speech_output, None, should_end_session))
-
-
-def set_color_in_session(intent, session):
-    """ Sets the color in the session and prepares the speech to reply to the
-    user.
-    """
-
-    card_title = intent['name']
-    session_attributes = {}
-    should_end_session = False
-
-    if 'Color' in intent['slots']:
-        favorite_color = intent['slots']['Color']['value']
-        session_attributes = create_favorite_color_attributes(favorite_color)
-        speech_output = "I now know your favorite color is " + \
-                        favorite_color + \
-                        ". You can ask me your favorite color by saying, " \
-                        "what's my favorite color?"
-        reprompt_text = "You can ask me your favorite color by saying, " \
-                        "what's my favorite color?"
-    else:
-        speech_output = "I'm not sure what your favorite color is. " \
-                        "Please try again."
-        reprompt_text = "I'm not sure what your favorite color is. " \
-                        "You can tell me your favorite color by saying, " \
-                        "my favorite color is red."
-    return build_response(session_attributes, build_speechlet_response(
-        card_title, speech_output, reprompt_text, should_end_session))
-
-
-def create_favorite_color_attributes(favorite_color):
-    return {"favoriteColor": favorite_color}
-
-
-def get_color_from_session(intent, session):
-    session_attributes = {}
-    reprompt_text = None
-
-    if session.get('attributes', {}) and "favoriteColor" in session.get('attributes', {}):
-        favorite_color = session['attributes']['favoriteColor']
-        speech_output = "Your favorite color is " + favorite_color + \
-                        ". Goodbye."
-        should_end_session = True
-    else:
-        speech_output = "I'm not sure what your favorite color is. " \
-                        "You can say, my favorite color is red."
-        should_end_session = False
-
-    # Setting reprompt_text to None signifies that we do not want to reprompt
-    # the user. If the user does not respond or says something that is not
-    # understood, the session will end.
-    return build_response(session_attributes, build_speechlet_response(
-        intent['name'], speech_output, reprompt_text, should_end_session))
-
-# --------------- Helpers that build all of the responses ----------------------
-
 
 def build_speechlet_response(title, output, reprompt_text, should_end_session):
     return {
