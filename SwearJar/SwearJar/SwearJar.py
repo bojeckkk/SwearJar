@@ -81,8 +81,29 @@ def on_intent(intent_request, session):
         return tell_how_much_in(intent, session)
     elif intent_name == "SetPrice":
         return update_price(intent, session)
+    elif intent_name == "RemovePerson":
+        return remove_person(intent, session)
     else:
         raise ValueError("Invalid intent")
+
+def remove_person(intent, session):
+    session_attributes = session.get('attributes', {})
+    person = intent['slots']['Person']['value']
+    found = False
+    for p in session_attributes['Persons']:
+        if p == person:
+            found = True
+    if found:
+        session_attributes['Persons'].pop(person, None)
+        speech_output = "Successfuly removed " + person + " from the jar"
+    else:
+        speech_output = "There's no such person in the jar"
+    reprompt_text = ""
+    should_end_session = False
+    card_title = intent['name']
+
+    return build_response(session_attributes, build_speechlet_response(
+        card_title, speech_output, reprompt_text, should_end_session))        
 
 def update_price(intent,session):
     session_attributes = session.get('attributes', {})
