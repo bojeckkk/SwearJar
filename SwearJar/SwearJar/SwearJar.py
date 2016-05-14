@@ -82,7 +82,7 @@ def on_intent(intent_request, session):
     elif intent_name == "SetPrice":
         return tell_the_ranking(intent, session)
     elif intent_name == "ResetJar":
-        return tell_the_ranking(intent, session)
+        return reset_jar(intent, session)
     else:
         raise ValueError("Invalid intent")
 
