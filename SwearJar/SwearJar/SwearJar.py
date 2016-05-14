@@ -81,8 +81,25 @@ def on_intent(intent_request, session):
         return tell_how_much_in(intent, session)
     elif intent_name == "SetPrice":
         return tell_the_ranking(intent, session)
+    elif intent_name == "ResetJar":
+        return tell_the_ranking(intent, session)
     else:
         raise ValueError("Invalid intent")
+
+def reset_jar(intent, session):
+    session_attributes = session.get('attributes', {})
+    persons = session_attributes['Persons']
+    persons.clear()
+
+
+    card_title = intent['name']
+    speech_output = "Jar has been reseted"
+    reprompt_text = ""
+
+    should_end_session = False
+
+    return build_response(session_attributes, build_speechlet_response(
+        card_title, speech_output, reprompt_text, should_end_session))
 
 def update_price(intent,session):
     session_attributes = session.get('attributes', {})
