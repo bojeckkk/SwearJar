@@ -89,7 +89,7 @@ def on_intent(intent_request, session):
 def help_me(intent, session):
     session_attributes = session.get('attributes', {})
     help_slot = intent['slots']['Help']['value']
-    if help_slot == "adding person":
+    if help_slot == "adding persons":
         speech_output = "to add new person you have to say add and the name of the person you want to add"
     elif help_slot == "removing person":
         speech_output = "to remove new person you have to say remove and the name of the person you want to remove"
@@ -99,6 +99,16 @@ def help_me(intent, session):
         speech_output = "to set new price you have to say remove and the amount of money"
     elif help_slot == "how much":
         speech_output = "if you want to know how much money jar got you have to say how much"
+    elif help_slot == "help":
+        speech_output ="You can ask for adding persons, removing persons, resetting the jar, setting the price and how much is in the jar"
+
+    reprompt_text = ""
+    should_end_session = False
+    card_title = intent['name']
+
+    return build_response(session_attributes, build_speechlet_response(
+        card_title, speech_output, reprompt_text, should_end_session)) 
+
 def remove_person(intent, session):
     session_attributes = session.get('attributes', {})
     person = intent['slots']['Person']['value']
