@@ -80,7 +80,7 @@ def on_intent(intent_request, session):
     elif intent_name == "HowMuchInJar":        
         return tell_how_much_in(intent, session)
     elif intent_name == "SetPrice":
-        return tell_the_ranking(intent, session)
+        return update_price(intent, session)
     else:
         raise ValueError("Invalid intent")
 
