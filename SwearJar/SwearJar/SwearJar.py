@@ -77,8 +77,25 @@ def on_intent(intent_request, session):
         return add_person_to_jar(intent, session)
     elif intent_name == "WhatsRanking":
         return tell_the_ranking(intent, session)
+    elif intent_name == "SetPrice":
+        return tell_the_ranking(intent, session)
     else:
         raise ValueError("Invalid intent")
+
+def update_price(intent,session):
+    session_attributes = session.get('attributes', {})
+    price = session_attributes['Price']
+    newPrice = intent['slots']['Money']['value']
+    session_attributes['Price'] = int(newPrice)
+
+    card_title = intent['name']
+    speech_output = "New price is " + newPrice
+    reprompt_text = ""
+
+    should_end_session = False
+
+    return build_response(session_attributes, build_speechlet_response(
+        card_title, speech_output, reprompt_text, should_end_session))
 
 def tell_the_ranking(intent, session):
     session_attributes = session.get('attributes', {})
