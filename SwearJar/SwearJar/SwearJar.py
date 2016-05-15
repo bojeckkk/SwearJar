@@ -9,6 +9,7 @@ http://amzn.to/1LGWsLG
 
 from __future__ import print_function
 from random import randint
+from collections import OrderedDict
 
 def lambda_handler(event, context):
     """ Route the incoming request based on type (LaunchRequest, IntentRequest,
@@ -275,7 +276,6 @@ def tell_the_ranking(intent, session):
     if not personsList:
         speech_output = "There are no persons in the jar"
     else:
-        #sortedPersons = sorted(persons.items(), key=lambda key: persons[key])
         for person in persons:
             speech_output = speech_output + person + "with " + str(persons[person]) + "dollars,"
     reprompt_text = ""
